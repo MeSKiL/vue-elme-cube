@@ -7,6 +7,28 @@
         :options="scrollOptions"
         v-if="goods.length"
       >
+        <template slot="bar" slot-scope="props">
+          <cube-scroll-nav-bar
+            direction="vertical"
+            :labels="props.labels"
+            :txts="barTxts"
+            :current="props.current"
+          >
+            <template slot-scope="props">
+              <div class="text">
+                <support-ico
+                  v-if="props.txt.type>=1"
+                  :size="3"
+                  :type="props.txt.type"
+                />
+                <span>{{props.txt.name}}</span>
+                <span class="num" v-if="props.txt.count">
+                  <bubble :num="props.txt.count" />
+                </span>
+              </div>
+            </template>
+          </cube-scroll-nav-bar>
+        </template>
         <cube-scroll-nav-panel
           v-for="good in goods"
           :key="good.name"
@@ -33,19 +55,35 @@
                   <span class="now">￥{{food.price}}</span>
                   <span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
                 </div>
+                <div class="cart-control-wrapper">
+                  <cart-control @add="onAdd" :food="food" />
+                </div>
               </div>
             </li>
           </ul>
         </cube-scroll-nav-panel>
       </cube-scroll-nav>
     </div>
+    <div class="shop-cart-wrapper">
+      <shop-cart ref="shopCart" :select-foods="selectFoods" :delivery-price="seller.deliveryPrice" :min-price="seller.minPrice" />
+    </div>
   </div>
 </template>
 <script>
   import { getGoods } from 'api/index'
+  import ShopCart from 'components/shop-cart/shop-cart'
+  import CartControl from 'components/cart-control/cart-control'
+  import SupportIco from 'components/support-ico/support-ico'
+  import Bubble from 'components/bubble/bubble'
 
   export default {
     name: 'goods',
+    components: {
+      SupportIco,
+      ShopCart,
+      CartControl,
+      Bubble
+    },
     props: {
       data: {
         type: Object,
@@ -63,11 +101,42 @@
         }
       }
     },
+    computed: {
+      seller() {
+        return this.data.seller
+      },
+      selectFoods() {
+        const ret = []
+        this.goods.forEach(good => {
+          good.foods.forEach(food => {
+            if (food.count) {
+              ret.push(food)
+            }
+          })
+        })
+        return ret
+      },
+      barTxts() {
+        return this.goods.map(good => {
+          const { type, name, foods } = good
+          const count = foods.reduce((amount, current) => {
+            amount += current.count || 0
+            return amount
+          }, 0)
+          return {
+            type, name, count
+          }
+        })
+      }
+    },
     methods: {
       fetch() {
         getGoods().then(goods => {
           this.goods = goods
         })
+      },
+      onAdd(el) {
+        this.$refs.shopCart.drop(el)
       }
     }
   }
