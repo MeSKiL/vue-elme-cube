@@ -23,7 +23,7 @@
                 />
                 <span>{{props.txt.name}}</span>
                 <span class="num" v-if="props.txt.count">
-                  <bubble :num="props.txt.count" />
+                  <bubble :num="props.txt.count"/>
                 </span>
               </div>
             </template>
@@ -37,6 +37,7 @@
         >
           <ul>
             <li
+              @click="selectFood(food)"
               v-for="food in good.foods"
               :key="food.name"
               class="food-item"
@@ -56,7 +57,7 @@
                   <span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
                 </div>
                 <div class="cart-control-wrapper">
-                  <cart-control @add="onAdd" :food="food" />
+                  <cart-control @add="onAdd" :food="food"/>
                 </div>
               </div>
             </li>
@@ -65,7 +66,8 @@
       </cube-scroll-nav>
     </div>
     <div class="shop-cart-wrapper">
-      <shop-cart ref="shopCart" :select-foods="selectFoods" :delivery-price="seller.deliveryPrice" :min-price="seller.minPrice" />
+      <shop-cart ref="shopCart" :select-foods="selectFoods" :delivery-price="seller.deliveryPrice"
+                 :min-price="seller.minPrice"/>
     </div>
   </div>
 </template>
@@ -87,14 +89,15 @@
     props: {
       data: {
         type: Object,
-        default() {
+        default () {
           return {}
         }
       }
     },
-    data() {
+    data () {
       return {
         goods: [],
+        selectedFood: {},
         scrollOptions: {
           click: false,
           directionLockThreshold: 0
@@ -102,10 +105,10 @@
       }
     },
     computed: {
-      seller() {
+      seller () {
         return this.data.seller
       },
-      selectFoods() {
+      selectFoods () {
         const ret = []
         this.goods.forEach(good => {
           good.foods.forEach(food => {
@@ -116,7 +119,7 @@
         })
         return ret
       },
-      barTxts() {
+      barTxts () {
         return this.goods.map(good => {
           const { type, name, foods } = good
           const count = foods.reduce((amount, current) => {
@@ -124,19 +127,59 @@
             return amount
           }, 0)
           return {
-            type, name, count
+            type,
+            name,
+            count
           }
         })
       }
     },
     methods: {
-      fetch() {
-        getGoods().then(goods => {
-          this.goods = goods
-        })
+      fetch () {
+        if (!this.fetched) {
+          this.fetched = true
+          getGoods().then(goods => {
+            this.goods = goods
+          })
+        }
       },
-      onAdd(el) {
+      onAdd (el) {
         this.$refs.shopCart.drop(el)
+      },
+      selectFood (food) {
+        this.selectedFood = food
+        this._showFood()
+        this._showShopCartSticky()
+      },
+      _showFood () {
+        this.foodComp = this.foodComp || this.$createFood({
+          $props: {
+            food: 'selectedFood'
+          },
+          $events: {
+            leave: () => {
+              this._hideShopCartList()
+            },
+            add: (el) => {
+              this.shopCartStickyComp.drop(el)
+            }
+          }
+        })
+        this.foodComp.show()
+      },
+      _showShopCartSticky () {
+        this.shopCartStickyComp = this.shopCartStickyComp || this.$createShopCartSticky({
+          $props: {
+            selectFoods: 'selectFoods',
+            deliveryPrice: this.seller.deliveryPrice,
+            minPrice: this.seller.minPrice,
+            fold: true
+          }
+        })
+        this.shopCartStickyComp.show()
+      },
+      _hideShopCartList() {
+        this.shopCartStickyComp.hide()
       }
     }
   }
@@ -148,16 +191,19 @@
     position: relative
     text-align: left
     height: 100%
+
     .scroll-nav-wrapper
       position: absolute
       width: 100%
       top: 0
       left: 0
       bottom: 48px
+
     >>> .cube-scroll-nav-bar
       width: 80px
       white-space: normal
       overflow: hidden
+
     >>> .cube-scroll-nav-bar-item
       padding: 0 10px
       display: flex
@@ -166,20 +212,25 @@
       line-height: 14px
       font-size: $fontsize-small
       background: $color-background-ssss
+
       .text
         flex: 1
         position: relative
+
       .num
         position: absolute
         right: -8px
         top: -10px
+
       .support-ico
         display: inline-block
         vertical-align: top
         margin-right: 4px
+
     >>> .cube-scroll-nav-bar-item_active
       background: $color-white
       color: $color-dark-grey
+
     >>> .cube-scroll-nav-panel-title
       padding-left: 14px
       height: 26px
@@ -188,52 +239,66 @@
       font-size: $fontsize-small
       color: $color-grey
       background: $color-background-ssss
+
     .food-item
       display: flex
       margin: 18px
       padding-bottom: 18px
       position: relative
+
       &:last-child
         border-none()
         margin-bottom: 0
+
       .icon
         flex: 0 0 57px
         margin-right: 10px
+
         img
           height: auto
+
       .content
         flex: 1
+
         .name
           margin: 2px 0 8px 0
           height: 14px
           line-height: 14px
           font-size: $fontsize-medium
           color: $color-dark-grey
+
         .desc, .extra
           line-height: 10px
           font-size: $fontsize-small-s
           color: $color-light-grey
+
         .desc
           line-height: 12px
           margin-bottom: 8px
+
         .extra
           .count
             margin-right: 12px
+
         .price
           font-weight: 700
           line-height: 24px
+
           .now
             margin-right: 8px
             font-size: $fontsize-medium
             color: $color-red
+
           .old
             text-decoration: line-through
             font-size: $fontsize-small-s
             color: $color-light-grey
+
       .cart-control-wrapper
         position: absolute
         right: 0
         bottom: 12px
+
     .shop-cart-wrapper
       position: absolute
       left: 0

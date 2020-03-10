@@ -5,14 +5,14 @@
       :mask-closable="true"
       :z-index="90"
       position="bottom"
-      type="show-cart-list"
+      type="shop-cart-list"
       @mask-click="maskClick"
     >
-      <transition name="move">
+      <transition name="move" @after-leave="onLeave">
         <div v-show="visible">
           <div class="list-header">
             <h1 class="title">购物车</h1>
-            <span class="empty">清空</span>
+            <span class="empty" @click="empty">清空</span>
           </div>
           <cube-scroll class="list-content" ref="listContent">
             <ul>
@@ -26,7 +26,7 @@
                   <span>￥{{food.price*food.count}}</span>
                 </div>
                 <div class="cart-control-wrapper">
-                  <cart-control :food="food"></cart-control>
+                  <cart-control @add="onAdd" :food="food"></cart-control>
                 </div>
               </li>
             </ul>
@@ -38,8 +38,13 @@
 </template>
 <script>
   import CartControl from 'components/cart-control/cart-control'
+  import popupMixin from 'common/mixins/popup'
+  const EVENT_SHOW = 'show'
+  const EVENT_LEAVE = 'leave'
+  const EVENT_ADD = 'add'
   export default {
     name: 'shop-cart-list',
+    mixins: [popupMixin],
     components: {
       CartControl
     },
@@ -49,6 +54,38 @@
         default() {
           return []
         }
+      }
+    },
+    created () {
+      this.$on(EVENT_SHOW, () => {
+        this.$nextTick(() => {
+          this.$refs.listContent.refresh()
+        })
+      })
+    },
+    methods: {
+      onLeave() {
+        this.$emit(EVENT_LEAVE)
+      },
+      maskClick() {
+        this.hide()
+      },
+      onAdd(target) {
+        this.$emit(EVENT_ADD, target)
+      },
+      empty() {
+        this.$createDialog({
+          type: 'confirm',
+          content: '清空购物车吗?',
+          $events: {
+            confirm: () => {
+              this.selectFoods.forEach((food) => {
+                food.count = 0
+              })
+              this.hide()
+            }
+          }
+        }).show()
       }
     }
   }
