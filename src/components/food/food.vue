@@ -6,7 +6,7 @@
           <div class="image-header">
             <img :src="food.image" />
             <div class="back" @click="hide">
-              <i class="icon-arrow_lift"></i>
+              <i class="icon-arrow_lift" />
             </div>
           </div>
           <div class="content">
@@ -23,21 +23,29 @@
               <cart-control @add="addFood" :food="food" />
             </div>
             <transition name="fade">
-              <div @click.stop="addFirst" class="buy" v-show="!food.count">加入购物车</div>
+              <div @click="addFirst" class="buy" v-show="!food.count">加入购物车</div>
             </transition>
           </div>
-          <split v-show="food.info"></split>
+          <split v-show="food.info" />
           <div class="info" v-show="food.info">
             <h1 class="title">商品信息</h1>
             <p class="text">{{food.info}}</p>
           </div>
-          <split></split>
+          <split />
           <div class="rating">
             <h1 class="title">商品评价</h1>
+            <rating-select
+              :ratings="ratings"
+              :only-content="onlyContent"
+              :select-type="selectType"
+              :desc="desc"
+              @select="onSelect"
+              @toggle="onToggle"
+            />
             <div class="rating-wrapper">
               <ul v-show="ratings && ratings.length">
                 <li
-                  v-for="(rating,index) in ratings"
+                  v-for="(rating,index) in computedRatings"
                   class="rating-item border-bottom-1px"
                   :key="index"
                 >
@@ -47,7 +55,7 @@
                   </div>
                   <div class="time">{{format(rating.rateTime)}}</div>
                   <p class="text">
-                    <span :class="{'icon-thumb_up':rating.rateType===0,'icon-thumb_down':rating.rateType===1}"></span>
+                    <span :class="{'icon-thumb_up':rating.rateType===0,'icon-thumb_down':rating.rateType===1}" />
                     {{rating.text}}
                   </p>
                 </li>
@@ -63,16 +71,19 @@
   import popupMixin from 'common/mixins/popup'
   import Split from 'components/split/split'
   import CartControl from 'components/cart-control/cart-control'
+  import RatingSelect from 'components/rating-select/rating-select'
   import moment from 'moment'
   const EVENT_SHOW = 'show'
   const EVENT_LEAVE = 'leave'
   const EVENT_ADD = 'add'
+  const ALL = 2
   export default {
     name: 'food',
     mixins: [popupMixin],
     components: {
       CartControl,
-      Split
+      Split,
+      RatingSelect
     },
     props: {
       food: {
@@ -86,9 +97,32 @@
         })
       })
     },
+    data() {
+      return {
+        onlyContent: true,
+        selectType: ALL,
+        desc: {
+          all: '全部',
+          positive: '推荐',
+          negative: '吐槽'
+        }
+      }
+    },
     computed: {
       ratings() {
         return this.food.ratings
+      },
+      computedRatings() {
+        const ret = []
+        this.ratings.forEach(rating => {
+          if (this.onlyContent && !rating.text) {
+            return
+          }
+          if (this.selectType === ALL || this.selectType === rating.rateType) {
+            ret.push(rating)
+          }
+        })
+        return ret
       }
     },
     methods: {
@@ -104,6 +138,17 @@
       },
       format(time) {
         return moment(time).format('YYYY-MM-DD hh:mm')
+      },
+      onSelect(type) {
+        this.selectType = type
+      },
+      onToggle() {
+        this.onlyContent = !this.onlyContent
+      }
+    },
+    watch: {
+      computedRatings(newVal) {
+        console.log(newVal)
       }
     }
   }
